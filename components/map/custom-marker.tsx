@@ -14,74 +14,118 @@ interface CustomMarkerProps {
   maki?: string;
   category?: string;
   onClick?: () => void;
+  isActive?: boolean;
+  name?: string;
+  distance?: number; // meters
 }
 
-// React-based marker component for better styling
+// React-based marker component
 export default function ReactCustomMarker({
   longitude,
   latitude,
   maki,
   category,
   onClick,
+  isActive = false,
+  name,
+  distance,
 }: CustomMarkerProps) {
   const { map } = useMap();
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const rootRef = useRef<ReturnType<typeof createRoot> | null>(null);
 
-  // Determine icon - get the Lucide icon component
   const iconKey = (maki || category || "default").toLowerCase();
   const IconComponent = iconMap[iconKey] || MapPin;
 
-  useEffect(() => {
-    if (!map) return;
+  // 🔹 Helper: render marker content (called on init + updates)
+  const renderContent = () => {
+    const baseClasses =
+      "bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-xl " +
+      "border-2 border-white rounded-full flex items-center justify-center " +
+      "w-10 h-10 md:w-11 md:h-11 " +
+      "transform transition-all duration-200 " +
+      "group-hover:scale-110 group-hover:shadow-2xl";
 
-    // Create container for React component
+    const activeRing = isActive
+      ? " ring-2 ring-offset-2 ring-rose-500 scale-110"
+      : "";
+
+    const prettyName = name || "Point of Interest";
+    const prettyCategory = category || "";
+    const prettyDistance =
+      typeof distance === "number"
+        ? `${Math.round(distance)}m away`
+        : "";
+
+    return (
+      <div
+        onClick={onClick}
+        className={`group relative ${onClick ? "cursor-pointer" : ""}`}
+        style={{ position: "relative" }}
+      >
+        {/* Hover card */}
+        <div
+          className="
+            pointer-events-none
+            absolute bottom-full left-1/2 -translate-x-1/2 mb-2
+            px-3 py-2 rounded-2xl
+            bg-slate-900/95 text-white shadow-2xl
+            text-[9px] leading-snug
+            flex flex-col gap-0.5
+            opacity-0 group-hover:opacity-100
+            transition-opacity duration-150
+            min-w-[140px] max-w-[180px]
+            z-50
+          "
+        >
+          <div className="font-semibold text-[10px] truncate">
+            {prettyName}
+          </div>
+          {prettyCategory && (
+            <div className="text-[9px] text-emerald-300 truncate">
+              {prettyCategory}
+            </div>
+          )}
+          {prettyDistance && (
+            <div className="text-[8px] text-slate-400">
+              {prettyDistance}
+            </div>
+          )}
+        </div>
+
+        {/* Outer wrapper */}
+        <div className="custom-marker-wrapper">
+          {/* Optional subtle pulse */}
+          <div
+            className={
+              "marker-pulse " +
+              (isActive ? "scale-110 opacity-90" : "opacity-70")
+            }
+          />
+          {/* Main circular marker */}
+          <div className="custom-marker">
+            <div className={baseClasses + activeRing}>
+              <IconComponent className="h-4 w-4" />
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // 🔹 Create marker once
+  useEffect(() => {
+    if (!map || markerRef.current) return;
+
     const container = document.createElement("div");
     container.className = "custom-marker-container";
     containerRef.current = container;
 
-    // Create React root and render marker
     const root = createRoot(container);
     rootRef.current = root;
+    root.render(renderContent());
 
-    // Render the marker with React
-    root.render(
-      React.createElement(
-        "div",
-        {
-          onClick: onClick,
-          className: onClick ? "cursor-pointer" : "",
-          style: { position: "relative" },
-        },
-        React.createElement(
-          "div",
-          { className: "custom-marker-wrapper" },
-          // Pulse animation
-          React.createElement("div", {
-            className: "marker-pulse",
-          }),
-          // Main marker (no pin triangle)
-          React.createElement(
-            "div",
-            { className: "custom-marker" },
-            React.createElement(
-              "div",
-              {
-                className:
-                  "marker-icon bg-gradient-to-br from-rose-500 to-rose-600 text-white shadow-xl border-2 border-white rounded-full flex items-center justify-center transform transition-all duration-200 hover:scale-110 hover:shadow-2xl",
-              },
-              React.createElement(IconComponent, {
-                className: "h-4 w-4",
-              })
-            )
-          )
-        )
-      )
-    );
-
-    // Create Mapbox marker
-    // Use "center" anchor since we removed the pin pointer
     const marker = new mapboxgl.Marker({
       element: container,
       anchor: "center",
@@ -92,32 +136,29 @@ export default function ReactCustomMarker({
     markerRef.current = marker;
 
     return () => {
-      // Remove marker from map first
       if (markerRef.current) {
         try {
           markerRef.current.remove();
-        } catch {
-          // Marker may have already been removed
-        }
+        } catch {}
         markerRef.current = null;
       }
-      
-      // Use requestAnimationFrame to defer unmount until after React finishes rendering
       if (rootRef.current) {
-        requestAnimationFrame(() => {
-          // Double-check root still exists before unmounting
-          if (rootRef.current && containerRef.current) {
-            try {
-              rootRef.current.unmount();
-            } catch {
-              // React may have already cleaned up, this is safe to ignore
-            }
-          }
-          rootRef.current = null;
-        });
+        try {
+          rootRef.current.unmount();
+        } catch {}
+        rootRef.current = null;
       }
     };
-  }, [map, longitude, latitude, maki, category, onClick, IconComponent]);
+    // only on mount/unmount for this position
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, longitude, latitude]);
+
+  // 🔹 Update marker content on prop changes (no remove/re-add)
+  useEffect(() => {
+    if (!rootRef.current) return;
+    rootRef.current.render(renderContent());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isActive, name, category, distance, onClick, IconComponent]);
 
   return null;
 }
