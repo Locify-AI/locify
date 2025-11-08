@@ -69,8 +69,8 @@ export default function UserLocationMarker() {
       blueCircleEl.style.left = "50%";
       blueCircleEl.style.top = "50%";
       blueCircleEl.style.transform = "translate(-50%, -50%)";
-      blueCircleEl.style.width = "64px";
-      blueCircleEl.style.height = "64px";
+      blueCircleEl.style.width = "76px";
+      blueCircleEl.style.height = "76px";
       blueCircleEl.style.borderRadius = "50%";
       blueCircleEl.style.backgroundColor = "rgba(59, 130, 246, 0.4)"; // Transparent blue
       blueCircleEl.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
@@ -205,8 +205,6 @@ function getArrowSVGBase64(): string {
           filter="url(#shadow)"
           stroke="none"
           stroke-linejoin="round"/>
-    <!-- Center circle -->
-    <circle cx="28" cy="28" r="4" fill="#ffffff" filter="url(#shadow)"/>
   </svg>`;
   
   // Properly encode SVG to base64
