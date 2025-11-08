@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
 import mapboxgl from "mapbox-gl";
 
 // User location type (for tracking)
@@ -35,6 +35,9 @@ export type MapContextType = {
   isTracking: boolean;
   startTracking: () => void;
   stopTracking: () => void;
+  // Internal refs for actual tracking functions (set by provider)
+  _setStartTrackingImpl?: (fn: () => void) => void;
+  _setStopTrackingImpl?: (fn: () => void) => void;
 
   // POI state
   selectedPOI: POI | null;
@@ -51,6 +54,8 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
   const [isTracking, setIsTracking] = useState(false);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [favorites, setFavorites] = useState<POI[]>([]);
+  const startTrackingImplRef = useRef<(() => void) | null>(null);
+  const stopTrackingImplRef = useRef<(() => void) | null>(null);
 
   // Wrapper for setUserLocation to support function updates
   const setUserLocation = (location: UserLocation | null | ((prev: UserLocation | null) => UserLocation | null)) => {
@@ -59,6 +64,14 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
     } else {
       setUserLocationState(location);
     }
+  };
+
+  const _setStartTrackingImpl = (fn: () => void) => {
+    startTrackingImplRef.current = fn;
+  };
+
+  const _setStopTrackingImpl = (fn: () => void) => {
+    stopTrackingImplRef.current = fn;
   };
 
   // Load favorites from localStorage
@@ -88,10 +101,18 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
 
   const startTracking = () => {
     setIsTracking(true);
+    // Call the actual implementation from provider
+    if (startTrackingImplRef.current) {
+      startTrackingImplRef.current();
+    }
   };
 
   const stopTracking = () => {
     setIsTracking(false);
+    // Call the actual implementation from provider
+    if (stopTrackingImplRef.current) {
+      stopTrackingImplRef.current();
+    }
   };
 
   return (
@@ -104,6 +125,8 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
         isTracking,
         startTracking,
         stopTracking,
+        _setStartTrackingImpl,
+        _setStopTrackingImpl,
         selectedPOI,
         setSelectedPOI,
         favorites,

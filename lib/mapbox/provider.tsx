@@ -35,8 +35,9 @@ function MapboxProviderInner({
   const mapRef = useRef<mapboxgl.Map | null>(null);
   const watchId = useRef<number | null>(null);
   const compassHeadingRef = useRef<number | null>(null);
+  const stopTrackingRef = useRef<(() => void) | null>(null);
   const [loaded, setLoaded] = useState(false);
-  const { setMap, setUserLocation, startTracking: contextStartTracking, stopTracking: contextStopTracking } = useMapContext();
+  const { setMap, setUserLocation, startTracking: contextStartTracking, stopTracking: contextStopTracking, _setStartTrackingImpl, _setStopTrackingImpl } = useMapContext();
 
   // Handle device orientation (compass) for heading
   useEffect(() => {
@@ -78,9 +79,15 @@ function MapboxProviderInner({
   }, [setUserLocation]);
 
   const startTracking = useCallback(() => {
-    contextStartTracking();
-
+    // Don't call contextStartTracking here - it creates infinite loop
+    // The context will set isTracking flag, we just do the actual geolocation work
+    
     if ("geolocation" in navigator) {
+      // Clear any existing watch
+      if (watchId.current !== null) {
+        navigator.geolocation.clearWatch(watchId.current);
+      }
+      
       watchId.current = navigator.geolocation.watchPosition(
         (position) => {
           const heading = compassHeadingRef.current ?? position.coords.heading ?? undefined;
@@ -104,17 +111,32 @@ function MapboxProviderInner({
         }
       );
     }
-  }, [contextStartTracking, setUserLocation]);
+  }, [setUserLocation]);
 
   const stopTracking = useCallback(() => {
-    contextStopTracking();
+    // Don't call contextStopTracking here - it creates infinite loop
+    // The context will set isTracking flag, we just do the actual cleanup
+    
     if (watchId.current !== null) {
       navigator.geolocation.clearWatch(watchId.current);
       watchId.current = null;
     }
     compassHeadingRef.current = null;
     setUserLocation(null);
-  }, [contextStopTracking, setUserLocation]);
+  }, [setUserLocation]);
+
+  // Store stopTracking in ref to avoid dependency issues
+  stopTrackingRef.current = stopTracking;
+
+  // Expose tracking functions to context
+  useEffect(() => {
+    if (_setStartTrackingImpl) {
+      _setStartTrackingImpl(startTracking);
+    }
+    if (_setStopTrackingImpl) {
+      _setStopTrackingImpl(stopTracking);
+    }
+  }, [startTracking, stopTracking, _setStartTrackingImpl, _setStopTrackingImpl]);
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -142,14 +164,17 @@ function MapboxProviderInner({
     (map as any).stopTracking = stopTracking;
 
     return () => {
-      stopTracking();
+      // Use ref to avoid dependency issues
+      if (stopTrackingRef.current) {
+        stopTrackingRef.current();
+      }
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
         setMap(null);
       }
     };
-  }, [initialViewState, mapContainerRef, setMap, stopTracking, startTracking]);
+  }, [initialViewState, mapContainerRef, setMap]);
 
   return (
     <>

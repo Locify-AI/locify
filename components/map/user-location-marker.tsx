@@ -15,7 +15,13 @@ export default function UserLocationMarker() {
   const previousHeadingRef = useRef<number | null>(null);
 
   useEffect(() => {
-    if (!map || !userLocation) {
+    if (!map) {
+      console.log("UserLocationMarker: Map not available");
+      return;
+    }
+    
+    if (!userLocation) {
+      console.log("UserLocationMarker: Location not available - click compass button to start tracking");
       // Clean up marker when location is not available
       if (markerRef.current) {
         markerRef.current.remove();
@@ -23,6 +29,8 @@ export default function UserLocationMarker() {
       }
       return;
     }
+
+    console.log("UserLocationMarker: Creating/updating marker at", userLocation.latitude, userLocation.longitude);
 
     // Create or update the main marker container (combines arrow and circle)
     if (!markerRef.current) {
