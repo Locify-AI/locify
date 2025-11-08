@@ -1,89 +1,88 @@
 // app/api/places/route.ts
+// Proxies to the Python backend's POST /api/discover-locations endpoint
+// and normalizes the response for the frontend.
 import { NextRequest, NextResponse } from "next/server";
 
-const FOURSQUARE_API_KEY = process.env.FOURSQUARE_API_KEY || "";
-const BASE_URL = "https://api.foursquare.com/v3/places/search";
-
-// You can tweak this list.
-const CATEGORIES = [
-  "16000", // Landmarks and outdoors
-  "13018", // Museums
-  "11046", // Historic sites
-].join(",");
+const BACKEND_BASE = process.env.BACKEND_BASE_URL || "http://localhost:8000";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
   const lat = searchParams.get("lat");
   const lon = searchParams.get("lon");
-  const radius = searchParams.get("radius") ?? "1000"; // meters
+  const radius = Number(searchParams.get("radius") ?? "1000"); // meters
 
   if (!lat || !lon) {
     return NextResponse.json({ error: "Missing lat/lon" }, { status: 400 });
   }
 
+  const latNum = Number(lat);
+  const lonNum = Number(lon);
+  if (Number.isNaN(latNum) || Number.isNaN(lonNum)) {
+    return NextResponse.json({ error: "Invalid lat/lon" }, { status: 400 });
+  }
+
   try {
-    // Basic numeric validation for lat/lon to avoid malformed queries
-    const latNum = Number(lat);
-    const lonNum = Number(lon);
-    if (Number.isNaN(latNum) || Number.isNaN(lonNum)) {
-      return NextResponse.json({ error: "Invalid lat/lon" }, { status: 400 });
-    }
-
-    const url = `${BASE_URL}?ll=${latNum},${lonNum}&radius=${radius}&categories=${CATEGORIES}&limit=30&sort=POPULARITY`;
-
-    const res = await fetch(url, {
-      headers: {
-        Authorization: FOURSQUARE_API_KEY,
-        accept: "application/json",
-      },
+    // Call backend discovery (includes narrations)
+    const res = await fetch(`${BACKEND_BASE}/api/discover-locations`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ latitude: latNum, longitude: lonNum, radius }),
+      // Server-to-server call; no CORS issues expected
     });
 
-    // If the remote API returns an HTTP error, capture status and body for debugging
     if (!res.ok) {
-      let bodyText = "";
-      try {
-        bodyText = await res.text();
-      } catch (e) {
-        bodyText = `<failed to read body: ${String(e)}>`;
-      }
-      console.error(`Foursquare API error (status=${res.status}):`, bodyText);
-      return NextResponse.json(
-        { error: "Foursquare error", status: res.status, details: bodyText },
-        { status: 502 }
-      );
-    }
-
-    let data: any;
-    try {
-      data = await res.json();
-    } catch (e) {
-      console.error("Failed to parse JSON from Foursquare response:", e);
       const text = await res.text().catch(() => "<unreadable>");
+      console.error(`Backend /api/discover-locations error (${res.status}):`, text);
       return NextResponse.json(
-        { error: "Invalid JSON from Foursquare", details: String(e), body: text },
+        { error: "Backend error", status: res.status, details: text },
         { status: 502 }
       );
     }
 
-    // Normalize minimal fields for frontend
-    const pois = (data.results || []).map((p: any) => ({
-      id: p.fsq_id,
-      name: p.name,
-      lat: p.geocodes?.main?.latitude,
-      lon: p.geocodes?.main?.longitude,
-      distance: p.distance,
-      categories: (p.categories || []).map((c: any) => c.name),
-      address: p.location?.formatted_address,
-      icon:
-        p.categories?.[0]?.icon
-          ? `${p.categories[0].icon.prefix}64${p.categories[0].icon.suffix}`
-          : null,
+    const data: unknown = await res.json();
+    type BackendLocation = {
+      id: number | string;
+      name: string;
+      latitude: number;
+      longitude: number;
+      category?: string | null;
+      narration?: string | null;
+      address?: string | null;
+    };
+    const isBackendLocationArray = (v: unknown): v is BackendLocation[] => {
+      if (!Array.isArray(v)) return false;
+      return v.every((item) =>
+        item && typeof item === "object" &&
+        ("id" in item) && ("name" in item) &&
+        ("latitude" in item) && ("longitude" in item)
+      );
+    };
+
+    const locations: BackendLocation[] =
+      typeof data === "object" && data !== null && isBackendLocationArray((data as { locations?: unknown }).locations)
+        ? ((data as { locations: BackendLocation[] }).locations)
+        : [];
+
+    // Normalize to POI shape expected by the frontend
+    const pois = locations.map((loc) => ({
+      id: String(loc.id),
+      name: loc.name,
+      lat: loc.latitude,
+      lon: loc.longitude,
+      distance: 0, // distance is computed client-side relative to user
+      categories: loc.category ? [loc.category] : [],
+      address: loc.address ?? undefined,
+      icon: null as string | null,
+      narration: loc.narration as string | undefined,
     }));
 
     return NextResponse.json({ pois });
-  } catch (err: any) {
-    // Log full error for server-side debugging and return a more descriptive message in dev
-    console.error("Unhandled error in /api/places:", err);
-    return NextResponse.json({ error: "Server error", message: err?.message || String(err) }, { status: 500 });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.error("Unhandled error in /api/places → backend proxy:", message);
+    return NextResponse.json(
+      { error: "Server error", message },
+      { status: 500 }
+    );
   }
 }

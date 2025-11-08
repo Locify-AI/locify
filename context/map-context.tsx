@@ -21,6 +21,7 @@ export type POI = {
   categories: string[];
   address?: string;
   icon?: string | null;
+  narration?: string; // MCP-provided narration text about this place
 };
 
 // Combined context type
@@ -40,10 +41,15 @@ export type MapContextType = {
   _setStopTrackingImpl?: (fn: () => void) => void;
 
   // POI state
+  pois: POI[];
+  setPois: (pois: POI[]) => void;
   selectedPOI: POI | null;
   setSelectedPOI: (poi: POI | null) => void;
   favorites: POI[];
   toggleFavorite: (poi: POI) => void;
+  // Active narration (shown when user is close to a POI)
+  activeNarration: { poi: POI; text: string } | null;
+  setActiveNarration: (narration: { poi: POI; text: string } | null) => void;
 };
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
@@ -52,8 +58,10 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
   const [map, setMap] = useState<mapboxgl.Map | null>(null);
   const [userLocation, setUserLocationState] = useState<UserLocation | null>(null);
   const [isTracking, setIsTracking] = useState(false);
+  const [pois, setPois] = useState<POI[]>([]);
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [favorites, setFavorites] = useState<POI[]>([]);
+  const [activeNarration, setActiveNarration] = useState<{ poi: POI; text: string } | null>(null);
   const startTrackingImplRef = useRef<(() => void) | null>(null);
   const stopTrackingImplRef = useRef<(() => void) | null>(null);
 
@@ -74,15 +82,46 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
     stopTrackingImplRef.current = fn;
   };
 
-  // Load favorites from localStorage
+  // Load favorites from localStorage (defer state update to microtask to avoid synchronous render warning)
   useEffect(() => {
     try {
       const raw = window.localStorage.getItem("locify_favorites");
-      if (raw) setFavorites(JSON.parse(raw));
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        Promise.resolve().then(() => setFavorites(parsed));
+      }
     } catch (e) {
       console.error("Failed to load favorites", e);
     }
   }, []);
+
+  // Load POIs from localStorage on mount (synchronous check, async state update)
+  useEffect(() => {
+    try {
+      const raw = window.localStorage.getItem("locify_pois");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          // Set immediately to prevent race condition with discovery fetch
+          setPois(parsed);
+          console.log(`Loaded ${parsed.length} POIs from localStorage`);
+        }
+      }
+    } catch (e) {
+      console.error("Failed to load POIs from localStorage", e);
+    }
+  }, []);
+
+  // Save POIs to localStorage whenever they change
+  useEffect(() => {
+    if (pois.length > 0) {
+      try {
+        window.localStorage.setItem("locify_pois", JSON.stringify(pois));
+      } catch (e) {
+        console.error("Failed to save POIs to localStorage", e);
+      }
+    }
+  }, [pois]);
 
   const toggleFavorite = (poi: POI) => {
     setFavorites((prev) => {
@@ -127,10 +166,14 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
         stopTracking,
         _setStartTrackingImpl,
         _setStopTrackingImpl,
+        pois,
+        setPois,
         selectedPOI,
         setSelectedPOI,
         favorites,
         toggleFavorite,
+        activeNarration,
+        setActiveNarration,
       }}
     >
       {children}
