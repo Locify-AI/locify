@@ -50,6 +50,9 @@ export type MapContextType = {
   // Active narration (shown when user is close to a POI)
   activeNarration: { poi: POI; text: string } | null;
   setActiveNarration: (narration: { poi: POI; text: string } | null) => void;
+  // Manual POI discovery
+  scanForPOIs: (radius?: number) => Promise<void>;
+  isScanning: boolean;
 };
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
@@ -62,6 +65,7 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [favorites, setFavorites] = useState<POI[]>([]);
   const [activeNarration, setActiveNarration] = useState<{ poi: POI; text: string } | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
   const startTrackingImplRef = useRef<(() => void) | null>(null);
   const stopTrackingImplRef = useRef<(() => void) | null>(null);
 
@@ -154,6 +158,79 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
     }
   };
 
+  // Manual POI discovery function
+  const scanForPOIs = async (radius = 2000) => {
+    if (isScanning) return; // Prevent concurrent scans
+    
+    setIsScanning(true);
+    try {
+      // Use userLocation if available, otherwise use default coordinate (Princeton)
+      const DEFAULT_LAT = 40.3431;
+      const DEFAULT_LON = -74.6551;
+      const lat = userLocation?.latitude ?? DEFAULT_LAT;
+      const lon = userLocation?.longitude ?? DEFAULT_LON;
+
+      const response = await fetch(
+        `/api/places?lat=${lat}&lon=${lon}&radius=${radius}`
+      );
+      
+      if (!response.ok) {
+        console.error("Failed to fetch POIs:", response.statusText);
+        return;
+      }
+
+      const data: unknown = await response.json();
+      type RawPoi = { 
+        id: string; 
+        name: string; 
+        lat: number; 
+        lon: number; 
+        categories?: string[]; 
+        address?: string; 
+        icon?: string | null; 
+        narration?: string;
+      };
+      
+      const extractPois = (v: unknown): RawPoi[] => {
+        if (!v || typeof v !== "object") return [];
+        const maybe = (v as { pois?: unknown }).pois;
+        if (!Array.isArray(maybe)) return [];
+        const isRawPoi = (item: unknown): item is RawPoi => {
+          if (!item || typeof item !== "object") return false;
+          const r = item as Record<string, unknown>;
+          return (
+            typeof r.id === "string" &&
+            typeof r.name === "string" &&
+            typeof r.lat === "number" &&
+            typeof r.lon === "number"
+          );
+        };
+        return maybe.filter(isRawPoi);
+      };
+
+      const rawArray = extractPois(data);
+      const basePois: POI[] = rawArray.map((p) => ({
+        id: p.id,
+        name: p.name,
+        lat: p.lat,
+        lon: p.lon,
+        distance: 0,
+        categories: p.categories || [],
+        address: p.address,
+        icon: p.icon,
+        narration: p.narration,
+      }));
+
+      // Clear old POIs and set new ones
+      setPois(basePois);
+      console.log(`Scanned and loaded ${basePois.length} new POIs`);
+    } catch (e) {
+      console.error("Error scanning for POIs:", e);
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
   return (
     <MapContext.Provider
       value={{
@@ -174,6 +251,8 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
         toggleFavorite,
         activeNarration,
         setActiveNarration,
+        scanForPOIs,
+        isScanning,
       }}
     >
       {children}

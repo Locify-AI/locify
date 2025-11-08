@@ -43,13 +43,16 @@ function MapboxProviderInner({
   useEffect(() => {
     const handleOrientation = (event: DeviceOrientationEvent) => {
       if (event.alpha !== null && !isNaN(event.alpha)) {
-        compassHeadingRef.current = event.alpha;
+        // Convert device orientation alpha (0-360, counter-clockwise) to compass heading (0-360, clockwise)
+        // Formula: heading = (360 - alpha) % 360
+        const heading = (360 - event.alpha) % 360;
+        compassHeadingRef.current = heading;
         
         setUserLocation((prevLocation: UserLocation | null) => {
           if (prevLocation) {
             return {
               ...prevLocation,
-              heading: event.alpha ?? prevLocation.heading,
+              heading: heading,
             };
           }
           return prevLocation;

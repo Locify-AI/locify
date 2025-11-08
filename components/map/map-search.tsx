@@ -1,6 +1,6 @@
 "use client";
 
-import { useMap } from "@/context/map-context";
+import { useMapContext } from "@/context/map-context";
 import {
   Command,
   CommandInput,
@@ -9,7 +9,8 @@ import {
   CommandGroup,
   CommandItem,
 } from "@/components/ui/command";
-import { Loader2, MapPin, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Loader2, MapPin, X, Scan } from "lucide-react";
 import { useState, useEffect } from "react";
 import React from "react";
 import { useDebounce } from "@/hooks/useDebounce";
@@ -17,7 +18,7 @@ import { cn } from "@/lib/utils";
 import { iconMap, LocationSuggestion } from "@/lib/mapbox/utils";
 
 export default function MapSearch() {
-  const { map } = useMap();
+  const { map, scanForPOIs, isScanning, userLocation, startTracking } = useMapContext();
   const [query, setQuery] = useState("");
   const [displayValue, setDisplayValue] = useState("");
   const [results, setResults] = useState<LocationSuggestion[]>([]);
@@ -123,12 +124,52 @@ export default function MapSearch() {
     }
   };
 
+  // Center map on user location (same logic as locate button)
+  const centerOnUser = () => {
+    if (!map) return;
+
+    if (userLocation) {
+      map.flyTo({
+        center: [userLocation.longitude, userLocation.latitude],
+        zoom: 15,
+        duration: 1500,
+      });
+    } else {
+      startTracking();
+
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            map.flyTo({
+              center: [longitude, latitude],
+              zoom: 15,
+              duration: 1500,
+            });
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+            alert(
+              "Unable to get your location. Please enable location services."
+            );
+          }
+        );
+      }
+    }
+  };
+
+  // Handle scan button click - center on user and scan for POIs
+  const handleScan = async () => {
+    centerOnUser();
+    await scanForPOIs();
+  };
+
   if (!map) return null;
 
   return (
     <>
-      <section className="absolute top-4 left-1/2 sm:left-4 z-[1001] w-[90vw] sm:w-[400px] -translate-x-1/2 sm:translate-x-0">
-        <Command className="rounded-lg border bg-background/95 backdrop-blur-sm shadow-lg">
+      <section className="absolute top-4 left-1/2 sm:left-4 z-[1001] w-[90vw] sm:w-[500px] -translate-x-1/2 sm:translate-x-0 flex gap-2">
+        <Command className="rounded-lg border bg-background/95 backdrop-blur-sm shadow-lg flex-1">
           <div
             className={cn(
               "w-full flex items-center justify-between px-3 gap-2",
@@ -208,6 +249,25 @@ export default function MapSearch() {
             </CommandList>
           )}
         </Command>
+        <Button
+          variant="outline"
+          onClick={handleScan}
+          disabled={isScanning}
+          className="h-[42px] px-4 bg-background/95 backdrop-blur-sm shadow-lg border flex items-center gap-2"
+          title="Scan for nearby places"
+        >
+          {isScanning ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Scanning...</span>
+            </>
+          ) : (
+            <>
+              <Scan className="h-4 w-4" />
+              <span>Scan</span>
+            </>
+          )}
+        </Button>
       </section>
     </>
   );
