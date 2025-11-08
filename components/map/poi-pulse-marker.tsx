@@ -37,10 +37,10 @@ export default function PoiPulseMarker({ latitude, longitude, name, isActive, on
       ring.style.left = "50%";
       ring.style.top = "50%";
       ring.style.transform = "translate(-50%, -50%)";
-      ring.style.width = "150px";
-      ring.style.height = "150px";
+      ring.style.width = "110px";
+      ring.style.height = "110px";
       ring.style.borderRadius = "50%";
-      ring.style.backgroundColor = "rgba(220, 38, 38, 0.35)"; // red-600 w/ opacity
+      ring.style.backgroundColor = "rgba(201, 45, 45, 0.35)"; // red-600 w/ opacity
       ring.style.animation = "poi-pulse-ring 2.4s ease-out infinite";
       ring.style.pointerEvents = "none";
       container.appendChild(ring);

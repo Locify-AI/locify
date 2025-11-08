@@ -87,12 +87,6 @@ function MapboxProviderInner({
     // Don't call contextStartTracking here - it creates infinite loop
     // The context will set isTracking flag, we just do the actual geolocation work
     
-    // DUMMY LOCATION FOR TESTING - Comment out real tracking code below
-    console.log("Tracking started (dummy location mode)");
-    // Don't actually start geolocation tracking in test mode
-    
-    // REAL TRACKING CODE - COMMENTED OUT FOR TESTING
-    /*
     // Prevent multiple simultaneous tracking starts
     if (trackingStartedRef.current && watchId.current !== null) {
       return;
@@ -131,7 +125,6 @@ function MapboxProviderInner({
         }
       );
     }
-    */
   }, [setUserLocation]);
 
   // Store startTracking in ref for use in location request effect
@@ -170,31 +163,6 @@ function MapboxProviderInner({
     if (locationRequestedRef.current) return;
     locationRequestedRef.current = true;
 
-    // DUMMY LOCATION FOR TESTING - Comment out real location code below
-    const dummyLocation: UserLocation = {
-      latitude: 40.350285,
-      longitude: -74.65778,
-      accuracy: 10,
-    };
-    setUserLocation(dummyLocation);
-    
-    // Update map center once map is loaded
-    const updateMapCenter = () => {
-      if (mapRef.current) {
-        mapRef.current.flyTo({
-          center: [dummyLocation.longitude, dummyLocation.latitude],
-          zoom: 15,
-          duration: 2000,
-        });
-      } else {
-        // Map not loaded yet, try again after a short delay
-        setTimeout(updateMapCenter, 100);
-      }
-    };
-    updateMapCenter();
-
-    // REAL LOCATION CODE - COMMENTED OUT FOR TESTING
-    /*
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
@@ -243,7 +211,6 @@ function MapboxProviderInner({
         }
       );
     }
-    */
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only run once on mount
 

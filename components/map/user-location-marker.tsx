@@ -80,6 +80,8 @@ export default function UserLocationMarker() {
       accuracyEl.style.backgroundColor = "rgba(59, 130, 246, 0.08)"; // faint fill
       accuracyEl.style.pointerEvents = "none";
       accuracyEl.style.zIndex = "1";
+      accuracyEl.style.width = "40px";
+      accuracyEl.style.height = "40px";
       container.appendChild(accuracyEl);
 
       // White arrow (SVG) with subtle shadow

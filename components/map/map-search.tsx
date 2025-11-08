@@ -231,26 +231,20 @@ export default function MapSearch() {
     if (!map) return;
 
     setIsSearchingPlaces(true);
+    
+    // Clear old POIs immediately when search starts
+    setPois([]);
 
     try {
-      // DUMMY LOCATION FOR TESTING
-      const dummyLat = 40.350285;
-      const dummyLng = -74.65778;
-      
+      // Get user location (request if not available)
       let lat: number;
       let lng: number;
 
       if (userLocation) {
-        // Use existing user location (will be dummy location in test mode)
+        // Use existing user location
         lat = userLocation.latitude;
         lng = userLocation.longitude;
       } else {
-        // Use dummy location for testing
-        lat = dummyLat;
-        lng = dummyLng;
-        
-        // REAL LOCATION CODE - COMMENTED OUT FOR TESTING
-        /*
         // Request user location
         const location = await new Promise<{ lat: number; lng: number }>((resolve) => {
           if ("geolocation" in navigator) {
@@ -286,7 +280,6 @@ export default function MapSearch() {
         });
         lat = location.lat;
         lng = location.lng;
-        */
       }
 
       // Fly to user location
