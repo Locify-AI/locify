@@ -164,7 +164,7 @@ function MapboxProviderInner({
 }
 
 // Main provider component that wraps with context
-export default function MapboxProvider(props: MapComponentProps): React.ReactElement {
+export default function MapboxProvider(props: MapComponentProps) {
   return (
     <ContextProvider>
       <MapboxProviderInner {...props} />

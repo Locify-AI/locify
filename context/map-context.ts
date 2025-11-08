@@ -45,7 +45,7 @@ export type MapContextType = {
 
 const MapContext = createContext<MapContextType | undefined>(undefined);
 
-export function MapProvider({ children }: { children: ReactNode }) {
+export function MapProvider({ children }: { children: ReactNode }): React.ReactElement {
   const [map, setMap] = useState<mapboxgl.Map | null>(null);
   const [userLocation, setUserLocationState] = useState<UserLocation | null>(null);
   const [isTracking, setIsTracking] = useState(false);
@@ -112,7 +112,7 @@ export function MapProvider({ children }: { children: ReactNode }) {
     >
       {children}
     </MapContext.Provider>
-  ) as React.ReactElement;
+  );
 }
 
 export function useMapContext() {
