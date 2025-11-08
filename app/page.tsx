@@ -27,8 +27,9 @@ export default function Home() {
       <MapProvider
         mapContainerRef={mapContainerRef}
         initialViewState={{
-          longitude: -74.6551,
-          latitude: 40.3431,
+          // DUMMY LOCATION FOR TESTING
+          longitude: -74.66017182973636,
+          latitude: 40.349120552481246,
           zoom: 15,
         }}
       >

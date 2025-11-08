@@ -191,6 +191,24 @@
   }
 }
 
+@keyframes pulse-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+.search-pulse-circle {
+  animation: pulse-expand 2s ease-out infinite;
+}
+
 /* Custom Mapbox Popup Styling */
 .mapboxgl-popup-content {
   @apply bg-card text-card-foreground rounded-lg shadow-lg;

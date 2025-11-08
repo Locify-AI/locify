@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import mapboxgl from "mapbox-gl";
 import { useMap } from "@/context/map-context";
 
@@ -11,9 +11,43 @@ import { useMap } from "@/context/map-context";
 export default function UserLocationMarker() {
   const { map, userLocation } = useMap();
   const markerRef = useRef<mapboxgl.Marker | null>(null);
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Track map load state
+  useEffect(() => {
+    if (!map) {
+      setMapLoaded(false);
+      return;
+    }
+
+    // Check if already loaded
+    try {
+      if (map.loaded() && map.getContainer()) {
+        setMapLoaded(true);
+        return;
+      }
+    } catch (e) {
+      // Map might not be ready
+    }
+
+    // Wait for map to load
+    const handleLoad = () => {
+      setMapLoaded(true);
+    };
+
+    map.once("load", handleLoad);
+    
+    return () => {
+      try {
+        map.off("load", handleLoad);
+      } catch (e) {
+        // Map might be destroyed, ignore
+      }
+    };
+  }, [map]);
 
   useEffect(() => {
-    if (!map) return;
+    if (!map || !mapLoaded) return;
 
     // Cleanup when no location
     if (!userLocation) {
@@ -75,32 +109,50 @@ export default function UserLocationMarker() {
       arrowWrapper.appendChild(svg);
       container.appendChild(arrowWrapper);
 
-      // Create marker
-      markerRef.current = new mapboxgl.Marker({ element: container, anchor: "center" })
-        .setLngLat([userLocation.longitude, userLocation.latitude])
-        .addTo(map);
+      // Create marker - ensure map is ready before adding
+      try {
+        markerRef.current = new mapboxgl.Marker({ element: container, anchor: "center" })
+          .setLngLat([userLocation.longitude, userLocation.latitude])
+          .addTo(map);
+      } catch (error) {
+        console.error("Error adding user location marker:", error);
+        markerRef.current = null;
+        return;
+      }
     } else {
       // Update position
-      markerRef.current.setLngLat([userLocation.longitude, userLocation.latitude]);
+      try {
+        markerRef.current.setLngLat([userLocation.longitude, userLocation.latitude]);
+      } catch (error) {
+        console.error("Error updating user location marker:", error);
+      }
     }
 
     // Update accuracy circle size and arrow rotation
-    const el = markerRef.current.getElement();
-    const accuracyEl = el.querySelector(".user-location-accuracy-circle") as HTMLElement | null;
-    const arrowWrapper = el.children.item(1) as HTMLElement | null;
+    if (markerRef.current) {
+      try {
+        const el = markerRef.current.getElement();
+        if (el) {
+          const accuracyEl = el.querySelector(".user-location-accuracy-circle") as HTMLElement | null;
+          const arrowWrapper = el.children.item(1) as HTMLElement | null;
 
-    if (accuracyEl) {
-      const accuracy = Math.max(5, Math.min(userLocation.accuracy || 0, 500)); // clamp
-      // Convert meters to pixels roughly: scale factor that looks reasonable
-      const px = Math.min((accuracy / 5) * 4, 220); // heuristic for visibility
-      accuracyEl.style.width = `${px}px`;
-      accuracyEl.style.height = `${px}px`;
+          if (accuracyEl) {
+            const accuracy = Math.max(5, Math.min(userLocation.accuracy || 0, 500)); // clamp
+            // Convert meters to pixels roughly: scale factor that looks reasonable
+            const px = Math.min((accuracy / 5) * 4, 220); // heuristic for visibility
+            accuracyEl.style.width = `${px}px`;
+            accuracyEl.style.height = `${px}px`;
+          }
+          if (arrowWrapper) {
+            arrowWrapper.style.transform = `translate(-50%, -50%) rotate(${heading}deg)`;
+          }
+        }
+      } catch (error) {
+        console.error("Error updating marker element:", error);
+      }
     }
-    if (arrowWrapper) {
-      arrowWrapper.style.transform = `translate(-50%, -50%) rotate(${heading}deg)`;
-    }
-  // Depend on full userLocation object (safe; null check at top handles cleanup) and map
-  }, [map, userLocation]);
+  // Depend on full userLocation object (safe; null check at top handles cleanup), map, and mapLoaded
+  }, [map, userLocation, mapLoaded]);
 
   // Cleanup on unmount
   useEffect(() => {

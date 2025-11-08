@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode, useRef, useCallback } from "react";
 import mapboxgl from "mapbox-gl";
 
 // User location type (for tracking)
@@ -66,13 +66,14 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
   const stopTrackingImplRef = useRef<(() => void) | null>(null);
 
   // Wrapper for setUserLocation to support function updates
-  const setUserLocation = (location: UserLocation | null | ((prev: UserLocation | null) => UserLocation | null)) => {
+  // Memoize to prevent infinite loops from dependencies
+  const setUserLocation = useCallback((location: UserLocation | null | ((prev: UserLocation | null) => UserLocation | null)) => {
     if (typeof location === 'function') {
       setUserLocationState(location);
     } else {
       setUserLocationState(location);
     }
-  };
+  }, []); // Empty deps - this function doesn't depend on any values
 
   const _setStartTrackingImpl = (fn: () => void) => {
     startTrackingImplRef.current = fn;

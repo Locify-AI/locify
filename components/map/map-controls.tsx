@@ -20,13 +20,27 @@ export default function MapControls() {
   const locateUser = () => {
     if (!map) return;
 
+    // DUMMY LOCATION FOR TESTING
+    const dummyLat = 40.350285;
+    const dummyLng = -74.65778;
+
     if (userLocation) {
+      // Use existing user location (will be dummy location in test mode)
       map.flyTo({
         center: [userLocation.longitude, userLocation.latitude],
         zoom: 15,
         duration: 1500,
       });
     } else {
+      // Use dummy location for testing
+      map.flyTo({
+        center: [dummyLng, dummyLat],
+        zoom: 15,
+        duration: 1500,
+      });
+
+      // REAL LOCATION CODE - COMMENTED OUT FOR TESTING
+      /*
       startTracking();
 
       if ("geolocation" in navigator) {
@@ -47,6 +61,7 @@ export default function MapControls() {
           }
         );
       }
+      */
     }
   };
 
