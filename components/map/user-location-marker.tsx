@@ -54,21 +54,37 @@ export default function UserLocationMarker() {
         container.appendChild(circleEl);
       }
 
-      // Create arrow element (foreground, centered on circle)
+      // Create blue circle background (semi-transparent, no border)
+      const blueCircleEl = document.createElement("div");
+      blueCircleEl.className = "user-location-blue-circle";
+      blueCircleEl.style.position = "absolute";
+      blueCircleEl.style.left = "50%";
+      blueCircleEl.style.top = "50%";
+      blueCircleEl.style.transform = "translate(-50%, -50%)";
+      blueCircleEl.style.width = "64px";
+      blueCircleEl.style.height = "64px";
+      blueCircleEl.style.borderRadius = "50%";
+      blueCircleEl.style.backgroundColor = "rgba(59, 130, 246, 0.4)"; // Transparent blue
+      blueCircleEl.style.boxShadow = "0 2px 8px rgba(0, 0, 0, 0.15)";
+      blueCircleEl.style.pointerEvents = "none";
+      blueCircleEl.style.zIndex = "2";
+      container.appendChild(blueCircleEl);
+
+      // Create kite-shaped plane element (foreground, centered on blue circle)
       const arrowEl = document.createElement("div");
       arrowEl.className = "user-location-arrow";
       arrowEl.style.position = "absolute";
       arrowEl.style.left = "50%";
       arrowEl.style.top = "50%";
       arrowEl.style.transform = "translate(-50%, -50%)";
-      arrowEl.style.width = "32px";
-      arrowEl.style.height = "32px";
+      arrowEl.style.width = "56px";
+      arrowEl.style.height = "56px";
       arrowEl.style.backgroundImage = "url(data:image/svg+xml;base64," + getArrowSVGBase64() + ")";
       arrowEl.style.backgroundSize = "contain";
       arrowEl.style.backgroundRepeat = "no-repeat";
       arrowEl.style.backgroundPosition = "center";
       arrowEl.style.transition = "transform 0.2s ease-out";
-      arrowEl.style.zIndex = "2";
+      arrowEl.style.zIndex = "3";
       container.appendChild(arrowEl);
 
       markerRef.current = new mapboxgl.Marker({
@@ -163,18 +179,26 @@ export default function UserLocationMarker() {
 }
 
 /**
- * Creates a high-quality arrow icon using SVG
+ * Creates a white arrow icon using SVG
  * Returns base64 encoded SVG string
+ * White arrow on blue circle background
  */
 function getArrowSVGBase64(): string {
-  // Simplified SVG without gradients for better compatibility
-  const svg = `<svg width="32" height="32" viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg">
-    <path d="M 16 4 L 26 24 L 20 24 L 20 28 L 12 28 L 12 24 L 6 24 Z" 
-          fill="#3b82f6" 
-          stroke="#ffffff" 
-          stroke-width="1.5" 
+  // Arrow shape - triangle pointing up (north), bigger size
+  const svg = `<svg width="56" height="56" viewBox="0 0 56 56" xmlns="http://www.w3.org/2000/svg">
+    <defs>
+      <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+        <feDropShadow dx="0" dy="1" stdDeviation="2" flood-color="rgba(0,0,0,0.25)"/>
+      </filter>
+    </defs>
+    <!-- Arrow triangle pointing up (north) - white -->
+    <path d="M 28 6 L 48 40 L 32 40 L 32 48 L 24 48 L 24 40 L 8 40 Z" 
+          fill="#ffffff" 
+          filter="url(#shadow)"
+          stroke="none"
           stroke-linejoin="round"/>
-    <circle cx="16" cy="16" r="3" fill="#ffffff"/>
+    <!-- Center circle -->
+    <circle cx="28" cy="28" r="4" fill="#ffffff" filter="url(#shadow)"/>
   </svg>`;
   
   // Properly encode SVG to base64
