@@ -84,6 +84,21 @@ export default function UserLocationMarker() {
       accuracyEl.style.height = "40px";
       container.appendChild(accuracyEl);
 
+      // Transparent circle behind arrow
+      const circleEl = document.createElement("div");
+      circleEl.className = "user-location-circle";
+      circleEl.style.position = "absolute";
+      circleEl.style.left = "50%";
+      circleEl.style.top = "50%";
+      circleEl.style.transform = "translate(-50%, -50%)";
+      circleEl.style.width = "50px";
+      circleEl.style.height = "50px";
+      circleEl.style.borderRadius = "50%";
+      circleEl.style.backgroundColor = "rgba(255, 255, 255, 0.3)"; // transparent white
+      circleEl.style.pointerEvents = "none";
+      circleEl.style.zIndex = "1.5";
+      container.appendChild(circleEl);
+
       // White arrow (SVG) with subtle shadow
       const arrowWrapper = document.createElement("div");
       arrowWrapper.style.position = "absolute";

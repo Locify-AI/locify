@@ -1,6 +1,6 @@
 "use client";
 
-import { useMap, useMapContext } from "@/context/map-context";
+import { useMapContext } from "@/context/map-context";
 import {
   Command,
   CommandInput,
@@ -10,14 +10,13 @@ import {
   CommandItem,
 } from "@/components/ui/command";
 import { Button } from "@/components/ui/button";
-import { Loader2, MapPin, X, Search } from "lucide-react";
+import { Loader2, MapPin, X, Scan } from "lucide-react";
 import { useState, useEffect, useRef } from "react";
 import React from "react";
 import mapboxgl from "mapbox-gl";
 import { useDebounce } from "@/hooks/useDebounce";
 import { cn } from "@/lib/utils";
 import { iconMap, LocationSuggestion } from "@/lib/mapbox/utils";
-import type { POI } from "@/context/map-context";
 
 interface SearchPulseProps {
   latitude: number;
@@ -26,7 +25,7 @@ interface SearchPulseProps {
 }
 
 function SearchPulse({ latitude, longitude, isActive }: SearchPulseProps) {
-  const { map } = useMap();
+  const { map } = useMapContext();
   const pulseRef = useRef<mapboxgl.Marker | null>(null);
 
   useEffect(() => {
@@ -116,16 +115,12 @@ function SearchPulse({ latitude, longitude, isActive }: SearchPulseProps) {
 }
 
 export default function MapSearch() {
-  const { map, userLocation } = useMap();
-  const { setPois } = useMapContext();
+  const { map, scanForPOIs, isScanning, userLocation, startTracking } = useMapContext();
   const [query, setQuery] = useState("");
   const [displayValue, setDisplayValue] = useState("");
   const [results, setResults] = useState<LocationSuggestion[]>([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [isSearchingPlaces, setIsSearchingPlaces] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
-  const [searchPulseActive, setSearchPulseActive] = useState(false);
-  const [searchCenter, setSearchCenter] = useState<{ lat: number; lng: number } | null>(null);
   const debouncedQuery = useDebounce(query, 300);
 
   // Search for suggestions
@@ -226,138 +221,52 @@ export default function MapSearch() {
     }
   };
 
-  // Handle search for places (calls API)
-  const handleSearchPlaces = async () => {
+  // Center map on user location (same logic as locate button)
+  const centerOnUser = () => {
     if (!map) return;
 
-    setIsSearchingPlaces(true);
-    
-    // Clear old POIs immediately when search starts
-    setPois([]);
-
-    try {
-      // Get user location (request if not available)
-      let lat: number;
-      let lng: number;
-
-      if (userLocation) {
-        // Use existing user location
-        lat = userLocation.latitude;
-        lng = userLocation.longitude;
-      } else {
-        // Request user location
-        const location = await new Promise<{ lat: number; lng: number }>((resolve) => {
-          if ("geolocation" in navigator) {
-            navigator.geolocation.getCurrentPosition(
-              (position) => {
-                resolve({
-                  lat: position.coords.latitude,
-                  lng: position.coords.longitude,
-                });
-              },
-              (error) => {
-                console.error("Error getting location:", error);
-                // Fallback to map center
-                const center = map.getCenter();
-                resolve({
-                  lat: center.lat,
-                  lng: center.lng,
-                });
-              },
-              {
-                enableHighAccuracy: true,
-                timeout: 10000,
-              }
-            );
-          } else {
-            // Fallback to map center
-            const center = map.getCenter();
-            resolve({
-              lat: center.lat,
-              lng: center.lng,
-            });
-          }
-        });
-        lat = location.lat;
-        lng = location.lng;
-      }
-
-      // Fly to user location
+    if (userLocation) {
       map.flyTo({
-        center: [lng, lat],
+        center: [userLocation.longitude, userLocation.latitude],
         zoom: 15,
         duration: 1500,
       });
+    } else {
+      startTracking();
 
-      // Wait for animation to complete, then show pulse and search
-      setTimeout(() => {
-        setSearchPulseActive(true);
-        setSearchCenter({ lat, lng });
-
-        // Call the places API
-        fetch(`/api/places?lat=${lat}&lon=${lng}&radius=1000`)
-          .then((response) => {
-            if (!response.ok) {
-              throw new Error("Failed to search for places");
-            }
-            return response.json();
-          })
-          .then((data) => {
-            // Update POIs in context from API response
-            if (data.pois && Array.isArray(data.pois)) {
-              const newPois: POI[] = data.pois.map((p: {
-                id: string;
-                name: string;
-                lat: number;
-                lon: number;
-                categories?: string[];
-                address?: string;
-                icon?: string | null;
-                narration?: string;
-              }) => ({
-                id: p.id,
-                name: p.name,
-                lat: p.lat,
-                lon: p.lon,
-                distance: 0, // Will be calculated by useNearbyPOIs
-                categories: p.categories || [],
-                address: p.address,
-                icon: p.icon,
-                narration: p.narration,
-              }));
-              setPois(newPois);
-              console.log(`Found and updated ${newPois.length} places`);
-            }
-
-            // Keep pulse active for 4 seconds to show the animation
-            setTimeout(() => {
-              setSearchPulseActive(false);
-              setSearchCenter(null);
-            }, 4000);
-          })
-          .catch((error) => {
-            console.error("Error searching places:", error);
-            setSearchPulseActive(false);
-            setSearchCenter(null);
-          })
-          .finally(() => {
-            setIsSearchingPlaces(false);
-          });
-      }, 1600); // Wait for flyTo animation to complete
-    } catch (error) {
-      console.error("Error searching places:", error);
-      setSearchPulseActive(false);
-      setSearchCenter(null);
-      setIsSearchingPlaces(false);
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            map.flyTo({
+              center: [longitude, latitude],
+              zoom: 15,
+              duration: 1500,
+            });
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+            alert(
+              "Unable to get your location. Please enable location services."
+            );
+          }
+        );
+      }
     }
+  };
+
+  // Handle scan button click - center on user and scan for POIs
+  const handleScan = async () => {
+    centerOnUser();
+    await scanForPOIs();
   };
 
   if (!map) return null;
 
   return (
     <>
-      <section className="absolute top-4 left-1/2 sm:left-4 z-[1001] w-[90vw] sm:w-[400px] -translate-x-1/2 sm:translate-x-0">
-        <Command className="rounded-lg border bg-background/95 backdrop-blur-sm shadow-lg">
+      <section className="absolute top-4 left-1/2 sm:left-4 z-[1001] w-[90vw] sm:w-[500px] -translate-x-1/2 sm:translate-x-0 flex gap-2">
+        <Command className="rounded-lg border bg-background/95 backdrop-blur-sm shadow-lg flex-1">
           <div
             className={cn(
               "w-full flex items-center justify-between px-3 gap-2",
@@ -379,21 +288,6 @@ export default function MapSearch() {
             {isSearching && (
               <Loader2 className="size-4 shrink-0 text-primary animate-spin" />
             )}
-            {/* Search places button */}
-            <Button
-              onClick={handleSearchPlaces}
-              disabled={isSearchingPlaces}
-              size="icon"
-              variant="default"
-              className="h-8 w-8 shrink-0"
-              title="Search for places nearby"
-            >
-              {isSearchingPlaces ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <Search className="h-4 w-4" />
-              )}
-            </Button>
           </div>
 
           {isOpen && query.trim() && (
@@ -452,16 +346,26 @@ export default function MapSearch() {
             </CommandList>
           )}
         </Command>
+        <Button
+          variant="outline"
+          onClick={handleScan}
+          disabled={isScanning}
+          className="h-[42px] px-4 bg-background/95 backdrop-blur-sm shadow-lg border flex items-center gap-2"
+          title="Scan for nearby places"
+        >
+          {isScanning ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              <span>Scanning...</span>
+            </>
+          ) : (
+            <>
+              <Scan className="h-4 w-4" />
+              <span>Scan</span>
+            </>
+          )}
+        </Button>
       </section>
-
-      {/* Search pulse animation */}
-      {searchPulseActive && searchCenter && (
-        <SearchPulse
-          latitude={searchCenter.lat}
-          longitude={searchCenter.lng}
-          isActive={searchPulseActive}
-        />
-      )}
     </>
   );
 }

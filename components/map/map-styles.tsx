@@ -29,7 +29,9 @@ const mapStyles = [
 export default function MapStyles() {
   const { map } = useMap();
   const [currentStyle, setCurrentStyle] = useState("standard");
+  const [isOpen, setIsOpen] = useState(false);
   const styleUrlRef = useRef<string>("mapbox://styles/mapbox/standard");
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!map) return;
@@ -66,6 +68,23 @@ export default function MapStyles() {
     };
   }, [map]);
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [isOpen]);
+
   const handleStyleChange = (styleId: string) => {
     if (!map) return;
     const style = mapStyles.find((s) => s.id === styleId);
@@ -76,28 +95,50 @@ export default function MapStyles() {
       setCurrentStyle(styleId);
       // Set the style on the map
       map.setStyle(style.style);
+      setIsOpen(false);
     }
   };
 
   if (!map) return null;
 
+  const currentStyleData = mapStyles.find((s) => s.id === currentStyle) || mapStyles[0];
+  const CurrentIcon = currentStyleData.icon;
+
   return (
-    <div className="absolute top-4 right-4 z-[1001] flex gap-2">
-      {mapStyles.map((style) => {
-        const Icon = style.icon;
-        return (
-          <Button
-            key={style.id}
-            variant={currentStyle === style.id ? "default" : "outline"}
-            size="icon"
-            onClick={() => handleStyleChange(style.id)}
-            title={style.name}
-            className="h-10 w-10"
-          >
-            <Icon className="h-4 w-4" />
-          </Button>
-        );
-      })}
+    <div ref={dropdownRef} className="absolute bottom-40 left-4 z-[1001]">
+      <div className="relative">
+        <Button
+          variant="outline"
+          onClick={() => setIsOpen(!isOpen)}
+          className="h-10 w-10 bg-background/80 backdrop-blur-sm flex items-center justify-center"
+          title="Map style"
+        >
+          <CurrentIcon className="h-4 w-4" />
+        </Button>
+        
+        {isOpen && (
+          <div className="absolute bottom-full left-0 mb-2 bg-background/95 backdrop-blur-sm border rounded-lg shadow-lg overflow-hidden min-w-[140px]">
+            {mapStyles.map((style) => {
+              const Icon = style.icon;
+              const isSelected = currentStyle === style.id;
+              return (
+                <button
+                  key={style.id}
+                  onClick={() => handleStyleChange(style.id)}
+                  className={`
+                    w-full flex items-center gap-2 px-3 py-2 text-sm
+                    hover:bg-accent transition-colors
+                    ${isSelected ? "bg-accent font-medium" : ""}
+                  `}
+                >
+                  <Icon className="h-4 w-4" />
+                  <span>{style.name}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
