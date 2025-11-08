@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, useEffect, ReactNode, useRef } from "react";
+import { createContext, useContext, useState, useEffect, ReactNode } from "react";
 import mapboxgl from "mapbox-gl";
 
 // User location type (for tracking)
@@ -133,3 +133,4 @@ export function useMap() {
     stopTracking: ctx.stopTracking,
   };
 }
+
