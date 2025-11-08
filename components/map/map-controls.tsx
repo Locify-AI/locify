@@ -3,30 +3,9 @@
 import { useMap } from "@/context/map-context";
 import { Button } from "@/components/ui/button";
 import { Plus, Minus, Compass } from "lucide-react";
-import { useEffect, useState } from "react";
 
 export default function MapControls() {
-  const { map } = useMap();
-  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
-
-  useEffect(() => {
-    if (!map) return;
-
-    // Request user location
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          setUserLocation({
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-        }
-      );
-    }
-  }, [map]);
+  const { map, userLocation, startTracking } = useMap();
 
   const zoomIn = () => {
     if (!map) return;
@@ -40,29 +19,34 @@ export default function MapControls() {
 
   const locateUser = () => {
     if (!map) return;
-    
+
     if (userLocation) {
       map.flyTo({
-        center: [userLocation.lng, userLocation.lat],
+        center: [userLocation.longitude, userLocation.latitude],
         zoom: 15,
         duration: 1500,
       });
-    } else if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const { latitude, longitude } = position.coords;
-          setUserLocation({ lat: latitude, lng: longitude });
-          map.flyTo({
-            center: [longitude, latitude],
-            zoom: 15,
-            duration: 1500,
-          });
-        },
-        (error) => {
-          console.error("Error getting location:", error);
-          alert("Unable to get your location. Please enable location services.");
-        }
-      );
+    } else {
+      startTracking();
+
+      if ("geolocation" in navigator) {
+        navigator.geolocation.getCurrentPosition(
+          (position) => {
+            const { latitude, longitude } = position.coords;
+            map.flyTo({
+              center: [longitude, latitude],
+              zoom: 15,
+              duration: 1500,
+            });
+          },
+          (error) => {
+            console.error("Error getting location:", error);
+            alert(
+              "Unable to get your location. Please enable location services."
+            );
+          }
+        );
+      }
     }
   };
 

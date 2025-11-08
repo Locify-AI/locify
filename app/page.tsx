@@ -6,6 +6,7 @@ import MapProvider from "@/lib/mapbox/provider";
 import MapStyles from "@/components/map/map-styles";
 import MapControls from "@/components/map/map-controls";
 import MapSearch from "@/components/map/map-search";
+import UserLocationMarker from "@/components/map/user-location-marker";
 
 export default function Home() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -29,6 +30,7 @@ export default function Home() {
         <MapSearch />
         <MapControls />
         <MapStyles />
+        <UserLocationMarker />
       </MapProvider>
     </div>
   );
