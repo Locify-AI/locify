@@ -72,6 +72,16 @@ npm run dev
 
 5. Open [http://localhost:3000](http://localhost:3000) in your browser
 
+
+## Deployment (Vercel)
+
+- Connect GitHub → Vercel.
+- Select your frontend repo.
+- Add environment variables in Vercel → Settings → Environment Variables:
+    - NEXT_PUBLIC_MAPBOX_TOKEN
+    - NEXT_PUBLIC_BACKEND_URL
+- deploy branch feat/avatar (latest branch)
+
 ## Project Structure
 
 ```
