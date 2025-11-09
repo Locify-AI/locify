@@ -1,8 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useMapContext } from "@/context/map-context";
-import { useNearbyPOIs, type POI } from "@/hooks/useNearbyPOIs";
+import { useMapContext, type POI } from "@/context/map-context";
+import { useNearbyPOIs } from "@/hooks/useNearbyPOIs";
 import { ChevronUp, ChevronDown, X, Loader2 } from "lucide-react";
 
 const PROXIMITY_THRESHOLD = 50; // meters - show narration when within 50m

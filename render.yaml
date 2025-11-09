@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: locify-frontend
+    env: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: 20.x
+      - key: NEXT_PUBLIC_MAPBOX_TOKEN
+        sync: false
+      - key: BACKEND_BASE_URL
+        sync: false
