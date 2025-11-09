@@ -35,8 +35,8 @@ A real-time location-based tour guide application that provides immersive audio 
 
 1. Clone the repository:
 ```bash
-git clone <your-repo-url>
-cd locify/locify
+git clone <https://github.com/Locify-AI/locify.git>
+cd locify
 ```
 
 2. Install dependencies:
