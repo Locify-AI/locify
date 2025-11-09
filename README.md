@@ -4,6 +4,8 @@ Our app is live on vercel: [maptourai](https://maptourai-git-feat-avatar-muhamma
 
 This project was initially developed under the name **Locify** and is now referred to as **maptourai**. File paths and source code may still use `locify`; both names describe the same application. maptourai provides real-time, proximity-based historical storytelling layered onto an interactive map.
 
+Developers Discord Handle: @wwsoup, @nursultansagyntay, @shahzaib4248, and @hailemariam_16209
+
 ## Core Features
 
 - Interactive map with Mapbox GL JS (standard, satellite, navigation styles)
