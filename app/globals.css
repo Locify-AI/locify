@@ -217,3 +217,17 @@
   border-left-color: hsl(var(--card)) !important;
   border-right-color: hsl(var(--card)) !important;
 }
+
+/* Narration panel slide-up animation */
+@keyframes slide-up {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.3s ease-out;
+}

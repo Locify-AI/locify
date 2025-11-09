@@ -1,11 +1,11 @@
 "use client";
 
-import { useMap } from "@/context/map-context";
+import { useMapContext } from "@/context/map-context";
 import { Button } from "@/components/ui/button";
 import { Plus, Minus, Compass } from "lucide-react";
 
 export default function MapControls() {
-  const { map, userLocation, startTracking } = useMap();
+  const { map, userLocation, startTracking, activeNarration } = useMapContext();
 
   const zoomIn = () => {
     if (!map) return;
@@ -52,8 +52,14 @@ export default function MapControls() {
 
   if (!map) return null;
 
+  // Adjust bottom position when narration is active (move up by half screen height)
+  const bottomOffset = activeNarration ? "calc(50vh + 1rem)" : "1rem";
+
   return (
-    <div className="absolute bottom-4 left-4 z-[1001] flex flex-col gap-2">
+    <div 
+      className="absolute left-4 z-[1001] flex flex-col gap-2 transition-all duration-300 ease-out"
+      style={{ bottom: bottomOffset }}
+    >
       <Button
         variant="outline"
         size="icon"

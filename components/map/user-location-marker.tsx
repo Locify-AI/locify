@@ -55,8 +55,8 @@ export default function UserLocationMarker() {
       circleEl.style.left = "50%";
       circleEl.style.top = "50%";
       circleEl.style.transform = "translate(-50%, -50%)";
-      circleEl.style.width = "50px";
-      circleEl.style.height = "50px";
+      circleEl.style.width = "80px";
+      circleEl.style.height = "80px";
       circleEl.style.borderRadius = "50%";
       circleEl.style.backgroundColor = "rgba(255, 255, 255, 0.3)"; // transparent white
       circleEl.style.pointerEvents = "none";

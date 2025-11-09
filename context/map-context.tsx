@@ -47,9 +47,9 @@ export type MapContextType = {
   setSelectedPOI: (poi: POI | null) => void;
   favorites: POI[];
   toggleFavorite: (poi: POI) => void;
-  // Active narration (shown when user is close to a POI)
-  activeNarration: { poi: POI; text: string } | null;
-  setActiveNarration: (narration: { poi: POI; text: string } | null) => void;
+  // Active narration (shown when user is close to a POI or clicks a POI)
+  activeNarration: { poi: POI; text: string; isLoading?: boolean } | null;
+  setActiveNarration: (narration: { poi: POI; text: string; isLoading?: boolean } | null) => void;
   // Manual POI discovery
   scanForPOIs: (radius?: number) => Promise<void>;
   isScanning: boolean;

@@ -24,13 +24,16 @@ export default function PoiPulseMarker({ latitude, longitude, name, isActive, on
       const container = document.createElement("div");
       container.className = "poi-pulse-container";
       container.style.position = "relative";
-      container.style.width = "0";
-      container.style.height = "0";
+      container.style.width = "110px"; // Match ring size for clickable area
+      container.style.height = "110px";
       container.style.cursor = "pointer";
       container.style.zIndex = "10";
+      container.style.display = "flex";
+      container.style.alignItems = "center";
+      container.style.justifyContent = "center";
       containerRef.current = container;
 
-      // Outer pulsing ring
+      // Outer pulsing ring - make it clickable
       const ring = document.createElement("div");
       ring.className = "poi-pulse-ring";
       ring.style.position = "absolute";
@@ -42,10 +45,11 @@ export default function PoiPulseMarker({ latitude, longitude, name, isActive, on
       ring.style.borderRadius = "50%";
       ring.style.backgroundColor = "rgba(220, 38, 38, 0.35)"; // red-600 w/ opacity
       ring.style.animation = "poi-pulse-ring 2.4s ease-out infinite";
-      ring.style.pointerEvents = "none";
+      ring.style.pointerEvents = "auto"; // Make clickable
+      ring.style.cursor = "pointer";
       container.appendChild(ring);
 
-      // Inner solid dot
+      // Inner solid dot - make it clickable
       const dot = document.createElement("div");
       dot.className = "poi-pulse-dot";
       dot.style.position = "absolute";
@@ -58,7 +62,8 @@ export default function PoiPulseMarker({ latitude, longitude, name, isActive, on
       dot.style.background = isActive ? "linear-gradient(135deg,#dc2626,#ef4444)" : "#dc2626"; // red gradient when active
       dot.style.boxShadow = "0 4px 14px rgba(0,0,0,0.4)";
       dot.style.border = "3px solid #ffffff";
-      dot.style.pointerEvents = "none";
+      dot.style.pointerEvents = "auto"; // Make clickable
+      dot.style.cursor = "pointer";
       dot.style.animation = "poi-pulse-dot 2.4s ease-in-out infinite";
       container.appendChild(dot);
 
@@ -83,7 +88,15 @@ export default function PoiPulseMarker({ latitude, longitude, name, isActive, on
 
       container.onmouseenter = () => { label.style.opacity = "1"; };
       container.onmouseleave = () => { label.style.opacity = "0"; };
-      container.onclick = () => { onClick?.(); };
+      
+      // Make both ring and dot clickable
+      const handleClick = (e: MouseEvent) => {
+        e.stopPropagation();
+        onClick?.();
+      };
+      container.onclick = handleClick;
+      ring.onclick = handleClick;
+      dot.onclick = handleClick;
 
       // Inject styles once
       if (!document.getElementById("poi-pulse-styles")) {
