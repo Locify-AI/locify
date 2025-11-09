@@ -191,6 +191,24 @@
   }
 }
 
+@keyframes pulse-expand {
+  0% {
+    transform: translate(-50%, -50%) scale(0.6);
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+.search-pulse-circle {
+  animation: pulse-expand 2s ease-out infinite;
+}
+
 /* Custom Mapbox Popup Styling */
 .mapboxgl-popup-content {
   @apply bg-card text-card-foreground rounded-lg shadow-lg;
@@ -218,6 +236,7 @@
   border-right-color: hsl(var(--card)) !important;
 }
 
+<<<<<<< HEAD
 /* Narration panel slide-up animation */
 @keyframes slide-up {
   from {
@@ -230,4 +249,18 @@
 
 .animate-slide-up {
   animation: slide-up 0.3s ease-out;
+}
+
+/* Ensure user location marker (arrow) appears above POI markers but below bottom bar */
+/* Bottom bar: z-index 2000, Arrow: z-index 100, POI markers: z-index 10 */
+.mapboxgl-marker:has(.user-location-marker-container),
+.mapboxgl-marker-container:has(.user-location-marker-container) {
+  z-index: 100 !important;
+}
+
+/* Ensure POI markers are below user location marker */
+.mapboxgl-marker:has(.poi-pulse-container),
+.mapboxgl-marker-container:has(.poi-pulse-container) {
+  z-index: 10 !important;
+>>>>>>> feat/avatar
 }

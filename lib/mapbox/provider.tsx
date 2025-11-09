@@ -36,6 +36,9 @@ function MapboxProviderInner({
   const watchId = useRef<number | null>(null);
   const compassHeadingRef = useRef<number | null>(null);
   const stopTrackingRef = useRef<(() => void) | null>(null);
+  const locationRequestedRef = useRef(false);
+  const startTrackingRef = useRef<(() => void) | null>(null);
+  const trackingStartedRef = useRef(false);
   const [loaded, setLoaded] = useState(false);
   const { setMap, setUserLocation, startTracking: contextStartTracking, stopTracking: contextStopTracking, _setStartTrackingImpl, _setStopTrackingImpl } = useMapContext();
 
@@ -48,6 +51,7 @@ function MapboxProviderInner({
         const heading = (360 - event.alpha) % 360;
         compassHeadingRef.current = heading;
         
+        // Update heading only if we have a location (use functional update to avoid dependency)
         setUserLocation((prevLocation: UserLocation | null) => {
           if (prevLocation) {
             return {
@@ -79,17 +83,26 @@ function MapboxProviderInner({
     return () => {
       window.removeEventListener('deviceorientation', handleOrientation);
     };
+    // setUserLocation is now memoized, so this dependency is safe
   }, [setUserLocation]);
 
   const startTracking = useCallback(() => {
     // Don't call contextStartTracking here - it creates infinite loop
     // The context will set isTracking flag, we just do the actual geolocation work
     
+    // Prevent multiple simultaneous tracking starts
+    if (trackingStartedRef.current && watchId.current !== null) {
+      return;
+    }
+    
     if ("geolocation" in navigator) {
       // Clear any existing watch
       if (watchId.current !== null) {
         navigator.geolocation.clearWatch(watchId.current);
+        watchId.current = null;
       }
+      
+      trackingStartedRef.current = true;
       
       watchId.current = navigator.geolocation.watchPosition(
         (position) => {
@@ -106,6 +119,7 @@ function MapboxProviderInner({
         },
         (error) => {
           console.error("Geolocation error:", error.message);
+          trackingStartedRef.current = false;
         },
         {
           enableHighAccuracy: true,
@@ -116,17 +130,23 @@ function MapboxProviderInner({
     }
   }, [setUserLocation]);
 
+  // Store startTracking in ref for use in location request effect
+  startTrackingRef.current = startTracking;
+
   const stopTracking = useCallback(() => {
     // Don't call contextStopTracking here - it creates infinite loop
     // The context will set isTracking flag, we just do the actual cleanup
+    
+    trackingStartedRef.current = false;
     
     if (watchId.current !== null) {
       navigator.geolocation.clearWatch(watchId.current);
       watchId.current = null;
     }
     compassHeadingRef.current = null;
-    setUserLocation(null);
-  }, [setUserLocation]);
+    // Don't clear userLocation when stopping - keep the last known position
+    // setUserLocation(null);
+  }, []); // Remove setUserLocation dependency to prevent loops
 
   // Store stopTracking in ref to avoid dependency issues
   stopTrackingRef.current = stopTracking;
@@ -140,6 +160,62 @@ function MapboxProviderInner({
       _setStopTrackingImpl(stopTracking);
     }
   }, [startTracking, stopTracking, _setStartTrackingImpl, _setStopTrackingImpl]);
+
+  // Request user location on mount and update map center (only once)
+  useEffect(() => {
+    if (locationRequestedRef.current) return;
+    locationRequestedRef.current = true;
+
+    if ("geolocation" in navigator) {
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          const { latitude, longitude } = position.coords;
+          const location: UserLocation = {
+            latitude,
+            longitude,
+            accuracy: position.coords.accuracy,
+          };
+          setUserLocation(location);
+          
+          // Update map center once map is loaded
+          const updateMapCenter = () => {
+            if (mapRef.current) {
+              mapRef.current.flyTo({
+                center: [longitude, latitude],
+                zoom: 15,
+                duration: 2000,
+              });
+            } else {
+              // Map not loaded yet, try again after a short delay
+              setTimeout(updateMapCenter, 100);
+            }
+          };
+          updateMapCenter();
+          
+          // Start tracking automatically (use ref to ensure it's available)
+          // Only start if not already tracking
+          if (startTrackingRef.current && !trackingStartedRef.current) {
+            // Use setTimeout to defer tracking start and prevent immediate state updates
+            setTimeout(() => {
+              if (startTrackingRef.current && !trackingStartedRef.current) {
+                startTrackingRef.current();
+              }
+            }, 100);
+          }
+        },
+        (error) => {
+          console.error("Error getting initial location:", error);
+          // If location is denied, use initial view state
+        },
+        {
+          enableHighAccuracy: true,
+          timeout: 10000,
+          maximumAge: 60000,
+        }
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Only run once on mount
 
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
@@ -177,7 +253,7 @@ function MapboxProviderInner({
         setMap(null);
       }
     };
-  }, [initialViewState, mapContainerRef, setMap]);
+  }, [initialViewState, mapContainerRef, setMap, setUserLocation]);
 
   return (
     <>

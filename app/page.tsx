@@ -10,7 +10,7 @@ import UserLocationMarker from "@/components/map/user-location-marker";
 import PoiMarkers from "@/components/map/PoiMarkers";
 import PoiDebugPanel from "@/components/map/poi-debug-panel";
 import PoiNarration from "@/components/map/poi-narration";
-import PoiBottomSheet from "@/components/map/poi-bottom-sheet";
+import ScanPulse from "@/components/map/scan-pulse";
 
 export default function Home() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -36,11 +36,20 @@ export default function Home() {
         <MapSearch />
         <MapControls />
         <MapStyles />
-        <UserLocationMarker />
-        <PoiMarkers />
-        <PoiNarration />
 
-        <PoiBottomSheet />
+        {/* Scan pulse animation */}
+        <ScanPulse />
+
+        {/* POI markers */}
+        <PoiMarkers />
+        <PoiDebugPanel />
+
+        {/* User location marker (arrow) - rendered last so it appears above POI markers */}
+        <UserLocationMarker />
+
+        {/* AI Narration when close to POI */}
+        <PoiNarration />
+      </MapProvider>
     </div>
   );
 }
