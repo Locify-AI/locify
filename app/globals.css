@@ -235,3 +235,16 @@
   border-left-color: hsl(var(--card)) !important;
   border-right-color: hsl(var(--card)) !important;
 }
+
+/* Ensure user location marker (arrow) appears above POI markers but below bottom bar */
+/* Bottom bar: z-index 2000, Arrow: z-index 100, POI markers: z-index 10 */
+.mapboxgl-marker:has(.user-location-marker-container),
+.mapboxgl-marker-container:has(.user-location-marker-container) {
+  z-index: 100 !important;
+}
+
+/* Ensure POI markers are below user location marker */
+.mapboxgl-marker:has(.poi-pulse-container),
+.mapboxgl-marker-container:has(.poi-pulse-container) {
+  z-index: 10 !important;
+}

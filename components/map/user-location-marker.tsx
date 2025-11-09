@@ -63,12 +63,14 @@ export default function UserLocationMarker() {
     // Create container if missing
     if (!markerRef.current) {
       const container = document.createElement("div");
+      container.className = "user-location-marker-container";
       container.style.position = "relative";
       container.style.width = "0";
       container.style.height = "0";
       container.style.pointerEvents = "none";
+      container.style.zIndex = "100"; // Above POI markers (10) but below bottom bar (2000)
 
-      // Accuracy circle (semi-transparent blue)
+      // Accuracy circle (larger blue circle)
       const accuracyEl = document.createElement("div");
       accuracyEl.className = "user-location-accuracy-circle";
       accuracyEl.style.position = "absolute";
@@ -76,30 +78,15 @@ export default function UserLocationMarker() {
       accuracyEl.style.top = "50%";
       accuracyEl.style.transform = "translate(-50%, -50%)";
       accuracyEl.style.borderRadius = "50%";
-      accuracyEl.style.border = "2px solid rgba(59, 130, 246, 0.25)"; // blue-500 at 25%
-      accuracyEl.style.backgroundColor = "rgba(59, 130, 246, 0.08)"; // faint fill
+      accuracyEl.style.border = "3px solid rgba(59, 130, 246, 0.4)"; // blue-500 thicker border
+      accuracyEl.style.backgroundColor = "rgba(59, 130, 246, 0.15)"; // more visible fill
       accuracyEl.style.pointerEvents = "none";
-      accuracyEl.style.zIndex = "1";
-      accuracyEl.style.width = "40px";
-      accuracyEl.style.height = "40px";
+      accuracyEl.style.zIndex = "3001"; // Above POI markers
+      accuracyEl.style.width = "60px"; // Larger default size
+      accuracyEl.style.height = "60px";
       container.appendChild(accuracyEl);
 
-      // Transparent circle behind arrow
-      const circleEl = document.createElement("div");
-      circleEl.className = "user-location-circle";
-      circleEl.style.position = "absolute";
-      circleEl.style.left = "50%";
-      circleEl.style.top = "50%";
-      circleEl.style.transform = "translate(-50%, -50%)";
-      circleEl.style.width = "50px";
-      circleEl.style.height = "50px";
-      circleEl.style.borderRadius = "50%";
-      circleEl.style.backgroundColor = "rgba(255, 255, 255, 0.3)"; // transparent white
-      circleEl.style.pointerEvents = "none";
-      circleEl.style.zIndex = "1.5";
-      container.appendChild(circleEl);
-
-      // White arrow (SVG) with subtle shadow
+      // White arrow (SVG) with subtle shadow - no circle behind
       const arrowWrapper = document.createElement("div");
       arrowWrapper.style.position = "absolute";
       arrowWrapper.style.left = "50%";
@@ -107,7 +94,7 @@ export default function UserLocationMarker() {
       arrowWrapper.style.transform = `translate(-50%, -50%) rotate(${heading}deg)`;
       arrowWrapper.style.width = "40px";
       arrowWrapper.style.height = "40px";
-      arrowWrapper.style.zIndex = "2";
+      arrowWrapper.style.zIndex = "3002"; // Above POI markers
       arrowWrapper.style.filter = "drop-shadow(0 2px 4px rgba(0,0,0,0.35))";
 
       const svgNS = "http://www.w3.org/2000/svg";
@@ -116,12 +103,10 @@ export default function UserLocationMarker() {
       svg.setAttribute("width", "40");
       svg.setAttribute("height", "40");
 
-      // Triangle arrow pointing up (we rotate wrapper to heading)
+      // Triangle arrow pointing up (we rotate wrapper to heading) - no stroke
       const arrow = document.createElementNS(svgNS, "path");
       arrow.setAttribute("d", "M50 5 L85 80 L50 65 L15 80 Z");
       arrow.setAttribute("fill", "#ffffff");
-      arrow.setAttribute("stroke", "#e5e7eb"); // gray-200 stroke
-      arrow.setAttribute("stroke-width", "2");
       svg.appendChild(arrow);
       arrowWrapper.appendChild(svg);
       container.appendChild(arrowWrapper);
@@ -145,23 +130,35 @@ export default function UserLocationMarker() {
       }
     }
 
-    // Update accuracy circle size and arrow rotation
+    // Update accuracy circle size and arrow rotation, and ensure marker is on top
     if (markerRef.current) {
       try {
         const el = markerRef.current.getElement();
         if (el) {
           const accuracyEl = el.querySelector(".user-location-accuracy-circle") as HTMLElement | null;
-          const arrowWrapper = el.children.item(1) as HTMLElement | null;
+          const arrowWrapper = el.children.item(1) as HTMLElement | null; // Now the second child (after accuracy circle)
 
           if (accuracyEl) {
             const accuracy = Math.max(5, Math.min(userLocation.accuracy || 0, 500)); // clamp
             // Convert meters to pixels roughly: scale factor that looks reasonable
-            const px = Math.min((accuracy / 5) * 4, 220); // heuristic for visibility
+            const px = Math.max(60, Math.min((accuracy / 5) * 4, 220)); // Minimum 60px, heuristic for visibility
             accuracyEl.style.width = `${px}px`;
             accuracyEl.style.height = `${px}px`;
           }
           if (arrowWrapper) {
             arrowWrapper.style.transform = `translate(-50%, -50%) rotate(${heading}deg)`;
+          }
+
+          // Ensure marker appears on top of POI markers by setting z-index on parent element
+          // Mapbox wraps markers in a div - find it and set z-index
+          // Use 100 to be above POI markers (10) but below bottom bar (2000)
+          let parent = el.parentElement;
+          while (parent && !parent.classList.contains('mapboxgl-canvas-container')) {
+            if (parent.classList.contains('mapboxgl-marker') || parent.style.position === 'absolute') {
+              parent.style.zIndex = '100';
+              break;
+            }
+            parent = parent.parentElement;
           }
         }
       } catch (error) {

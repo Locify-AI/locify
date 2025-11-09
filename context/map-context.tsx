@@ -22,6 +22,7 @@ export type POI = {
   address?: string;
   icon?: string | null;
   narration?: string; // MCP-provided narration text about this place
+  audio_url?: string; // URL to the AI avatar video on S3
 };
 
 // Combined context type
@@ -163,7 +164,20 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
   const scanForPOIs = async (radius = 2000) => {
     if (isScanning) return; // Prevent concurrent scans
     
+    const MIN_SCAN_DURATION = 3000; // Minimum 3 seconds
+
+    setPois([]);
+    
     setIsScanning(true);
+    
+    // Create a promise that resolves after minimum duration
+    const minDurationPromise = new Promise<void>((resolve) => {
+      setTimeout(resolve, MIN_SCAN_DURATION);
+    });
+    
+    let fetchData: unknown = null;
+    let fetchError: Error | null = null;
+    
     try {
       // Use userLocation if available, otherwise use default coordinate (Princeton)
       const DEFAULT_LAT = 40.3431;
@@ -171,63 +185,81 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
       const lat = userLocation?.latitude ?? DEFAULT_LAT;
       const lon = userLocation?.longitude ?? DEFAULT_LON;
 
-      const response = await fetch(
+      // Start fetch - catch errors so we can wait for minimum duration
+      const fetchPromise = fetch(
         `/api/places?lat=${lat}&lon=${lon}&radius=${radius}`
-      );
-      
-      if (!response.ok) {
-        console.error("Failed to fetch POIs:", response.statusText);
-        return;
-      }
+      )
+        .then(async (response) => {
+          if (!response.ok) {
+            throw new Error(`Failed to fetch POIs: ${response.statusText}`);
+          }
+          return response.json();
+        })
+        .then((data) => {
+          fetchData = data;
+        })
+        .catch((error) => {
+          fetchError = error as Error;
+        });
 
-      const data: unknown = await response.json();
-      type RawPoi = { 
-        id: string; 
-        name: string; 
-        lat: number; 
-        lon: number; 
-        categories?: string[]; 
-        address?: string; 
-        icon?: string | null; 
-        narration?: string;
-      };
+      // Wait for both fetch and minimum duration
+      await Promise.all([fetchPromise, minDurationPromise]);
       
-      const extractPois = (v: unknown): RawPoi[] => {
-        if (!v || typeof v !== "object") return [];
-        const maybe = (v as { pois?: unknown }).pois;
-        if (!Array.isArray(maybe)) return [];
-        const isRawPoi = (item: unknown): item is RawPoi => {
-          if (!item || typeof item !== "object") return false;
-          const r = item as Record<string, unknown>;
-          return (
-            typeof r.id === "string" &&
-            typeof r.name === "string" &&
-            typeof r.lat === "number" &&
-            typeof r.lon === "number"
-          );
+      // Process the result if fetch succeeded
+      if (fetchData && !fetchError) {
+        type RawPoi = { 
+          id: string; 
+          name: string; 
+          lat: number; 
+          lon: number; 
+          categories?: string[]; 
+          address?: string; 
+          icon?: string | null; 
+          narration?: string;
         };
-        return maybe.filter(isRawPoi);
-      };
+        
+        const extractPois = (v: unknown): RawPoi[] => {
+          if (!v || typeof v !== "object") return [];
+          const maybe = (v as { pois?: unknown }).pois;
+          if (!Array.isArray(maybe)) return [];
+          const isRawPoi = (item: unknown): item is RawPoi => {
+            if (!item || typeof item !== "object") return false;
+            const r = item as Record<string, unknown>;
+            return (
+              typeof r.id === "string" &&
+              typeof r.name === "string" &&
+              typeof r.lat === "number" &&
+              typeof r.lon === "number"
+            );
+          };
+          return maybe.filter(isRawPoi);
+        };
 
-      const rawArray = extractPois(data);
-      const basePois: POI[] = rawArray.map((p) => ({
-        id: p.id,
-        name: p.name,
-        lat: p.lat,
-        lon: p.lon,
-        distance: 0,
-        categories: p.categories || [],
-        address: p.address,
-        icon: p.icon,
-        narration: p.narration,
-      }));
+        const rawArray = extractPois(fetchData);
+        const basePois: POI[] = rawArray.map((p) => ({
+          id: p.id,
+          name: p.name,
+          lat: p.lat,
+          lon: p.lon,
+          distance: 0,
+          categories: p.categories || [],
+          address: p.address,
+          icon: p.icon,
+          narration: p.narration,
+        }));
 
-      // Clear old POIs and set new ones
-      setPois(basePois);
-      console.log(`Scanned and loaded ${basePois.length} new POIs`);
+        // Clear old POIs and set new ones
+        setPois(basePois);
+        console.log(`Scanned and loaded ${basePois.length} new POIs`);
+      } else if (fetchError) {
+        console.error("Error fetching POIs:", fetchError);
+      }
     } catch (e) {
       console.error("Error scanning for POIs:", e);
+      // Ensure minimum duration has passed even on unexpected errors
+      await minDurationPromise;
     } finally {
+      // At this point, at least MIN_SCAN_DURATION has passed
       setIsScanning(false);
     }
   };

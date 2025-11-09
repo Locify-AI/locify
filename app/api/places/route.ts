@@ -48,6 +48,7 @@ export async function GET(req: NextRequest) {
       category?: string | null;
       narration?: string | null;
       address?: string | null;
+      audio_url?: string | null;
     };
     const isBackendLocationArray = (v: unknown): v is BackendLocation[] => {
       if (!Array.isArray(v)) return false;
@@ -74,6 +75,7 @@ export async function GET(req: NextRequest) {
       address: loc.address ?? undefined,
       icon: null as string | null,
       narration: loc.narration as string | undefined,
+      audio_url: loc.audio_url as string | undefined,
     }));
 
     return NextResponse.json({ pois });
