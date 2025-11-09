@@ -10,6 +10,7 @@ import UserLocationMarker from "@/components/map/user-location-marker";
 import PoiMarkers from "@/components/map/PoiMarkers";
 import PoiDebugPanel from "@/components/map/poi-debug-panel";
 import PoiNarration from "@/components/map/poi-narration";
+import PoiBottomSheet from "@/components/map/poi-bottom-sheet";
 
 export default function Home() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -32,21 +33,14 @@ export default function Home() {
           zoom: 15,
         }}
       >
-        {/* Existing controls */}
         <MapSearch />
         <MapControls />
         <MapStyles />
-        
-        {/* User location marker (pulsing circle) */}
         <UserLocationMarker />
-        
-        {/* POI towers */}
         <PoiMarkers />
-        <PoiDebugPanel />
-        
-        {/* AI Narration when close to POI */}
         <PoiNarration />
-      </MapProvider>
+
+        <PoiBottomSheet />
     </div>
   );
 }
