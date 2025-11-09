@@ -219,11 +219,11 @@ export default function PoiNarration() {
 
   return (
     <div
-      className={`fixed bottom-0 left-0 right-0 z-[2000] transition-transform duration-300 ease-in-out ${
+      className={`fixed bottom-0 left-0 right-0 z-[2000] transition-transform duration-300 ease-in-out pointer-events-none ${
         isVisible ? 'translate-y-0' : 'translate-y-full'
       }`}
     >
-      <div className="bg-white rounded-t-3xl shadow-2xl overflow-hidden">
+      <div className="bg-white rounded-t-3xl shadow-2xl overflow-hidden pointer-events-auto">
         {/* Header - Always visible */}
         <div
           className="flex items-center justify-between p-4 cursor-pointer border-b border-gray-100"
@@ -273,7 +273,7 @@ export default function PoiNarration() {
                 controls
                 autoPlay
                 playsInline
-                className="w-full max-h-[400px] object-contain bg-black"
+                className="w-full max-h-[400px] object-contain bg-white"
                 onError={(e) => {
                   console.error("Video playback error:", e);
                 }}

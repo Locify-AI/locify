@@ -8,9 +8,11 @@ import MapControls from "@/components/map/map-controls";
 import MapSearch from "@/components/map/map-search";
 import UserLocationMarker from "@/components/map/user-location-marker";
 import PoiMarkers from "@/components/map/PoiMarkers";
-import PoiDebugPanel from "@/components/map/poi-debug-panel";
+// import PoiDebugPanel from "@/components/map/poi-debug-panel";
 import PoiNarration from "@/components/map/poi-narration";
 import ScanPulse from "@/components/map/scan-pulse";
+import RouteLayer from "@/components/map/routeLayer";
+import ClearRouteButton from "@/components/map/clearRouteButton";
 
 export default function Home() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -42,14 +44,17 @@ export default function Home() {
         <ScanPulse />
 
         {/* POI towers */}
+        <RouteLayer />
+        <ClearRouteButton /> 
+
         <PoiMarkers />
-        <PoiDebugPanel />
+        {/* <PoiDebugPanel /> */}
 
         {/* User location marker (arrow) - rendered last so it appears above POI markers */}
         <UserLocationMarker />
 
         {/* AI Narration when close to POI */}
-        <PoiNarration />
+        <PoiNarration/>
       </MapProvider>
     </div>
   );
