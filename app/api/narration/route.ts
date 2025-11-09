@@ -2,7 +2,7 @@
 // Proxies to the Python backend's GET /api/locations/{id} to fetch narration.
 import { NextRequest, NextResponse } from "next/server";
 
-const BACKEND_BASE = process.env.BACKEND_BASE_URL || "http://localhost:8000";
+const BACKEND_BASE = process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000";
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
