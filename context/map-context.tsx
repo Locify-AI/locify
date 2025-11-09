@@ -51,6 +51,9 @@ export type MapContextType = {
   // Active narration (shown when user is close to a POI)
   activeNarration: { poi: POI; text: string } | null;
   setActiveNarration: (narration: { poi: POI; text: string } | null) => void;
+  // Narration panel expand/collapse state
+  isPanelExpanded: boolean;
+  setIsPanelExpanded: (isExpanded: boolean) => void;
   // Manual POI discovery
   scanForPOIs: (radius?: number) => Promise<void>;
   isScanning: boolean;
@@ -66,6 +69,7 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
   const [selectedPOI, setSelectedPOI] = useState<POI | null>(null);
   const [favorites, setFavorites] = useState<POI[]>([]);
   const [activeNarration, setActiveNarration] = useState<{ poi: POI; text: string } | null>(null);
+  const [isPanelExpanded, setIsPanelExpanded] = useState(true);
   const [isScanning, setIsScanning] = useState(false);
   const startTrackingImplRef = useRef<(() => void) | null>(null);
   const stopTrackingImplRef = useRef<(() => void) | null>(null);
@@ -284,6 +288,8 @@ export function MapProvider({ children }: { children: ReactNode }): React.ReactE
         toggleFavorite,
         activeNarration,
         setActiveNarration,
+        isPanelExpanded,
+        setIsPanelExpanded,
         scanForPOIs,
         isScanning,
       }}

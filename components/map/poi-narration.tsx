@@ -12,10 +12,9 @@ const PROXIMITY_THRESHOLD = 50; // meters - show narration when within 50m
  * in a Google Maps-style bottom tab with smooth animations
  */
 export default function PoiNarration() {
-  const { userLocation, activeNarration, setActiveNarration } = useMapContext();
+  const { userLocation, activeNarration, setActiveNarration, isPanelExpanded, setIsPanelExpanded } = useMapContext();
   const { pois } = useNearbyPOIs(2000); // Check POIs within 2km
   const [narrationCache, setNarrationCache] = useState<Map<string, string>>(new Map());
-  const [isExpanded, setIsExpanded] = useState(true);
   const [isVisible, setIsVisible] = useState(false);
   const [isLoadingVideo, setIsLoadingVideo] = useState(false);
   const [videoUrl, setVideoUrl] = useState<string | null>(null);
@@ -45,7 +44,7 @@ export default function PoiNarration() {
         if (!activeNarration || activeNarration.poi.id !== nearbyPOI.id) {
           setActiveNarration({ poi: nearbyPOI, text: cachedNarration });
           setIsVisible(true);
-          setIsExpanded(true);
+          setIsPanelExpanded(true);
           // Check for existing video or generate new one
           handleVideoForPOI(nearbyPOI);
         }
@@ -57,7 +56,7 @@ export default function PoiNarration() {
         if (!activeNarration || activeNarration.poi.id !== nearbyPOI.id) {
           setActiveNarration({ poi: nearbyPOI, text: nearbyPOI.narration });
           setIsVisible(true);
-          setIsExpanded(true);
+          setIsPanelExpanded(true);
           // Check for existing video or generate new one
           handleVideoForPOI(nearbyPOI);
         }
@@ -184,7 +183,7 @@ export default function PoiNarration() {
         // Set active narration
         setActiveNarration({ poi, text: narrationText });
         setIsVisible(true);
-        setIsExpanded(true);
+        setIsPanelExpanded(true);
 
         // Handle video generation
         handleVideoForPOI(poi);
@@ -193,7 +192,7 @@ export default function PoiNarration() {
         const fallbackNarration = `You're near ${poi.name}, a ${poi.categories[0] || "point of interest"}.`;
         setActiveNarration({ poi, text: fallbackNarration });
         setIsVisible(true);
-        setIsExpanded(true);
+        setIsPanelExpanded(true);
       }
     } catch (error) {
       console.error("Error fetching narration from MCP:", error);
@@ -201,12 +200,12 @@ export default function PoiNarration() {
       const fallbackNarration = `You're near ${poi.name}, a ${poi.categories[0] || "point of interest"}.`;
       setActiveNarration({ poi, text: fallbackNarration });
       setIsVisible(true);
-      setIsExpanded(true);
+      setIsPanelExpanded(true);
     }
   };
 
   const handleToggle = () => {
-    setIsExpanded(!isExpanded);
+    setIsPanelExpanded(!isPanelExpanded);
   };
 
   const handleClose = () => {
@@ -245,9 +244,9 @@ export default function PoiNarration() {
           </div>
           <button
             className="p-1 hover:bg-gray-100 rounded-full transition-colors"
-            aria-label={isExpanded ? "Collapse" : "Expand"}
+            aria-label={isPanelExpanded ? "Collapse" : "Expand"}
           >
-            {isExpanded ? (
+            {isPanelExpanded ? (
               <ChevronDown size={20} className="text-slate-600" />
             ) : (
               <ChevronUp size={20} className="text-slate-600" />
@@ -258,7 +257,7 @@ export default function PoiNarration() {
         {/* Content - Expandable */}
         <div
           className={`transition-all duration-300 ease-in-out overflow-hidden ${
-            isExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
+            isPanelExpanded ? 'max-h-[600px] opacity-100' : 'max-h-0 opacity-0'
           }`}
         >
           {isLoadingVideo ? (
@@ -267,14 +266,14 @@ export default function PoiNarration() {
               <p className="text-sm text-slate-600">Generating avatar video...</p>
               <p className="text-xs text-slate-400 mt-1">This may take a moment</p>
             </div>
-          ) : hasVideo ? (
+          ) : (
             <div className="w-full">
               <video
                 src={videoUrl || activeNarration.poi.audio_url}
                 controls
                 autoPlay
                 playsInline
-                className="w-full max-h-[500px] object-contain bg-black"
+                className="w-full max-h-[400px] object-contain bg-black"
                 onError={(e) => {
                   console.error("Video playback error:", e);
                 }}
@@ -282,17 +281,11 @@ export default function PoiNarration() {
                 Your browser does not support the video tag.
               </video>
               {/* Optional: Show text narration below video */}
-              <div className="p-4 pt-2 border-t border-gray-100">
+              {/* <div className="p-4 pt-2 border-t border-gray-100">
                 <p className="text-xs text-slate-600 leading-relaxed">
                   {activeNarration.text}
                 </p>
-              </div>
-            </div>
-          ) : (
-            <div className="p-4 pt-2">
-              <p className="text-slate-700 leading-relaxed">
-                {activeNarration.text}
-              </p>
+              </div> */}
             </div>
           )}
         </div>

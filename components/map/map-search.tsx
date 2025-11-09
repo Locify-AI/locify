@@ -350,7 +350,7 @@ export default function MapSearch() {
           variant="outline"
           onClick={handleScan}
           disabled={isScanning}
-          className="h-[42px] px-4 bg-background/95 backdrop-blur-sm shadow-lg border flex items-center gap-2"
+          className="h-[38px] px-4 py-0 bg-background/95 backdrop-blur-sm shadow-lg border flex items-center gap-2"
           title="Scan for nearby places"
         >
           {isScanning ? (
