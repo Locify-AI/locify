@@ -51,7 +51,7 @@ Built with Next.js, Mapbox, and FastAPI, it bridges modern web development and A
 1. Clone the repository:
 ```bash
 git clone <https://github.com/Locify-AI/locify.git>
-cd locify/locify
+cd locify
 ```
 
 2. Install dependencies:
