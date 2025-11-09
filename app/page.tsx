@@ -10,6 +10,9 @@ import UserLocationMarker from "@/components/map/user-location-marker";
 import PoiMarkers from "@/components/map/PoiMarkers";
 import PoiDebugPanel from "@/components/map/poi-debug-panel";
 import PoiNarration from "@/components/map/poi-narration";
+import RouteLayer from "@/components/map/routeLayer";
+import ClearRouteButton from "@/components/map/clearRouteButton";
+
 
 export default function Home() {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
@@ -42,6 +45,9 @@ export default function Home() {
         
         {/* POI towers */}
         <PoiMarkers />
+
+        <RouteLayer />
+        <ClearRouteButton /> 
         <PoiDebugPanel />
         
         {/* AI Narration when close to POI */}

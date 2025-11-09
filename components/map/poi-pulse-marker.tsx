@@ -13,9 +13,10 @@ interface PulseMarkerProps {
 }
 
 export default function PoiPulseMarker({ latitude, longitude, name, isActive, onClick }: PulseMarkerProps) {
+  const { map, setSelectedPOI } = useMapContext();
   const markerRef = useRef<mapboxgl.Marker | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
-  const { map } = useMapContext();
+  
 
   useEffect(() => {
     if (!map) return;
@@ -23,9 +24,10 @@ export default function PoiPulseMarker({ latitude, longitude, name, isActive, on
     if (!markerRef.current) {
       const container = document.createElement("div");
       container.className = "poi-pulse-container";
-      container.style.position = "relative";
-      container.style.width = "0";
-      container.style.height = "0";
+      container.style.position = "absolute";
+      container.style.width = "40px";
+      container.style.height = "40px";
+      container.style.pointerEvents = "auto";
       container.style.cursor = "pointer";
       container.style.zIndex = "10";
       containerRef.current = container;
@@ -83,7 +85,19 @@ export default function PoiPulseMarker({ latitude, longitude, name, isActive, on
 
       container.onmouseenter = () => { label.style.opacity = "1"; };
       container.onmouseleave = () => { label.style.opacity = "0"; };
-      container.onclick = () => { onClick?.(); };
+      container.onclick = (e) => {
+        e.stopPropagation();
+        console.log("POI clicked:", name);
+        setSelectedPOI({
+          id: `${latitude}-${longitude}`,
+          name,
+          lat: latitude,
+          lon: longitude,
+          distance: 0,
+          categories: [],
+        });
+        onClick?.();
+      };
 
       // Inject styles once
       if (!document.getElementById("poi-pulse-styles")) {
@@ -124,6 +138,5 @@ export default function PoiPulseMarker({ latitude, longitude, name, isActive, on
       }
     };
   }, []);
-
   return null;
 }
