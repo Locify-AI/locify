@@ -2,7 +2,7 @@
 // Random POI locations for testing
 // Will be replaced by Python backend using MCPs
 
-import type { POI } from "@/hooks/useNearbyPOIs";
+import type { POI } from "@/context/map-context";
 
 // Generate random POIs around a center point
 function generateRandomPOI(
@@ -47,3 +47,4 @@ export const MOCK_POIS: POI[] = [
   generateRandomPOI("poi-7", "Botanical Garden", CENTER_LAT, CENTER_LON, 1.5, ["Garden", "Nature"]),
   generateRandomPOI("poi-8", "Historic Bridge", CENTER_LAT, CENTER_LON, 1.5, ["Historic Building", "Bridge"]),
 ];
+
